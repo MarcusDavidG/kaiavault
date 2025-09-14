@@ -1,14 +1,45 @@
-import { useState } from 'react'
-import { useAccount, useWriteContract } from 'wagmi'
-import { VAULT_CONTRACT_ADDRESS, USDTVaultABI } from '../abi'
+import { useState } from 'react';
+import { useAccount, useWriteContract } from 'wagmi';
+import { VAULT_CONTRACT_ADDRESS, USDTVaultABI } from '../abi';
+import { isRunningInLineMiniDapp, getLineMiniDappSDK, encodeFunctionData } from '../lib/lineMiniDapp';
 
 export function DepositWithdrawForm() {
-  const [depositAmount, setDepositAmount] = useState('')
-  const { address, chain } = useAccount()
-  const { writeContract, isPending, error } = useWriteContract()
+  const [depositAmount, setDepositAmount] = useState('');
+  const { address, chain } = useAccount();
+  const { writeContract, isPending: isWagmiPending, error: wagmiError } = useWriteContract();
 
-  const handleDeposit = () => {
-    if (depositAmount) {
+  const [isLineTxPending, setIsLineTxPending] = useState(false);
+  const [lineTxError, setLineTxError] = useState<string | null>(null);
+
+  const isInLine = isRunningInLineMiniDapp();
+
+  const handleDeposit = async () => {
+    if (!depositAmount) return;
+
+    if (isInLine) {
+      setIsLineTxPending(true);
+      setLineTxError(null);
+      try {
+        const sdk = getLineMiniDappSDK();
+        const encodedData = encodeFunctionData({
+            abi: USDTVaultABI,
+            functionName: 'deposit',
+            args: [BigInt(depositAmount)],
+          });
+        const txResult = await sdk.requestTransaction({
+          to: VAULT_CONTRACT_ADDRESS,
+          data: encodedData,
+          // value: '0x0', // Assuming no native token transfer for USDT deposit
+        });
+        console.log('LINE Deposit Tx Result:', txResult);
+        // Handle success, e.g., show a success message or refetch balances
+      } catch (err: any) {
+        setLineTxError(err.message);
+        console.error('LINE Deposit failed:', err);
+      } finally {
+        setIsLineTxPending(false);
+      }
+    } else {
       writeContract({
         address: VAULT_CONTRACT_ADDRESS,
         abi: USDTVaultABI,
@@ -16,12 +47,37 @@ export function DepositWithdrawForm() {
         args: [BigInt(depositAmount)],
         account: address,
         chain: chain,
-      })
+      });
     }
-  }
+  };
 
-  const handleWithdraw = () => {
-    if (depositAmount) {
+  const handleWithdraw = async () => {
+    if (!depositAmount) return;
+
+    if (isInLine) {
+      setIsLineTxPending(true);
+      setLineTxError(null);
+      try {
+        const sdk = getLineMiniDappSDK();
+        const encodedData = encodeFunctionData({
+            abi: USDTVaultABI,
+            functionName: 'withdraw',
+            args: [BigInt(depositAmount)],
+          });
+        const txResult = await sdk.requestTransaction({
+          to: VAULT_CONTRACT_ADDRESS,
+          data: encodedData,
+          // value: '0x0', // Assuming no native token transfer for USDT withdrawal
+        });
+        console.log('LINE Withdraw Tx Result:', txResult);
+        // Handle success
+      } catch (err: any) {
+        setLineTxError(err.message);
+        console.error('LINE Withdraw failed:', err);
+      } finally {
+        setIsLineTxPending(false);
+      }
+    } else {
       writeContract({
         address: VAULT_CONTRACT_ADDRESS,
         abi: USDTVaultABI,
@@ -29,9 +85,12 @@ export function DepositWithdrawForm() {
         args: [BigInt(depositAmount)],
         account: address,
         chain: chain,
-      })
+      });
     }
-  }
+  };
+
+  const isPending = isInLine ? isLineTxPending : isWagmiPending;
+  const error = isInLine ? lineTxError : wagmiError?.message;
 
   return (
     <div className="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -68,11 +127,11 @@ export function DepositWithdrawForm() {
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error:</strong>
-          <span className="block sm:inline"> {error.message}</span>
+          <span className="block sm:inline"> {error}</span>
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default DepositWithdrawForm
+export default DepositWithdrawForm;
