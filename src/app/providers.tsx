@@ -26,7 +26,7 @@ const kaiaTestnet = defineChain({
  * Dapp Portal provider is available.
  */
 function WagmiInitializer({ children }: { children: ReactNode }) {
-  const { provider, isLoading } = useDappPortal();
+  const { provider, isLoading, error } = useDappPortal();
 
   // Create the Wagmi config only when the provider is ready
   const config = useMemo(() => {
@@ -45,6 +45,10 @@ function WagmiInitializer({ children }: { children: ReactNode }) {
   }, [provider]);
 
   // Render WagmiProvider only when the config is created
+  if (error) {
+    return <div className="text-red-500">Error initializing wallet: {error.message}</div>;
+  }
+
   if (isLoading || !config) {
     // You can render a loading spinner here if needed
     return <div>Loading Wallet Provider...</div>;

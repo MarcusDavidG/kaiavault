@@ -4,7 +4,7 @@ import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { useDappPortal } from "@/hooks/useDappPortal";
 import { usdtVaultContractAddress } from "@/lib/contracts";
-import { abi as USDTVaultAbi } from "@/abi/USDTVault.json";
+import USDTVaultJson from "@/abi/USDTVault.json";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Helper component for each metric card
@@ -33,7 +33,7 @@ export function VaultDashboard() {
 
   const { data: userBalance, isLoading: isUserBalanceLoading } = useReadContract({
     address: usdtVaultContractAddress,
-    abi: USDTVaultAbi,
+    abi: USDTVaultJson.abi,
     functionName: "getBalance",
     args: [account!],
     query: {
@@ -43,7 +43,7 @@ export function VaultDashboard() {
 
   const { data: tvl, isLoading: isTvlLoading } = useReadContract({
     address: usdtVaultContractAddress,
-    abi: USDTVaultAbi,
+    abi: USDTVaultJson.abi,
     functionName: "totalVaultBalance",
   });
 
