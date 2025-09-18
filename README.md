@@ -1,50 +1,36 @@
-# Kaiavault
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A simple USDT savings vault built on the Kaia blockchain for the **Kaia Wave Stablecoin Summer Hackathon 2025**.
-Kaiavault enables users to deposit Kaia-native USDT, track balances, and withdraw at any time — laying the foundation for secure, yield-generating DeFi experiences inside the Kaia × LINE ecosystem.
+## Getting Started
 
-## Features
-- Deposit and withdraw Kaia-native USDT
-- Track balances per user
-- Transparent TVL tracking
-- Ready for LINE Mini-dApp integration
+First, run the development server:
 
-## Tech Stack
-- Smart Contracts: Solidity + Foundry
-- Chain: Kaia testnet
-- Analytics: Dune dashboard (coming soon)
-- UI: React (Day 2 plan)
-
-## Deploy
 ```bash
-forge script script/Deploy.s.sol \
-  --rpc-url <KAIA_TESTNET_RPC> \
-  --private-key $PRIVATE_KEY \
-  --broadcast
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Hackathon Submission
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-* Protocol: Kaiavault smart contracts (GitHub repo)
-* Mini-Dapp: LINE integration (in progress)
-* Analytics: Dune dashboard (in progress)
-* Pitch Deck: (coming soon)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-# Commands
-```
+## Learn More
 
-forge build
-forge test
-forge script script/Deploy.s.sol \
---rpc-url https://kaia-testnet.rpc.url \
---private-key $PRIVATE_KEY \
---broadcast
+To learn more about Next.js, take a look at the following resources:
 
-```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-# Notes
-- Replace the Kaia testnet USDT contract address in `Deploy.s.sol`.
-- Replace `https://kaia-testnet.rpc.url` with the actual Kaia testnet RPC.
-- Use your private key for deployment.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
