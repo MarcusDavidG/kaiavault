@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import useDappPortal from '../hooks/useDappPortal';
+import { useDappPortal } from '../hooks/useDappPortal';
 
 interface WalletContextType {
   account: string | null;
@@ -12,7 +12,7 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const { sdk, loading: sdkLoading, error: sdkError } = useDappPortal();
+  const { sdk, isLoading: sdkLoading, error: sdkError } = useDappPortal();
   const [account, setAccount] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
