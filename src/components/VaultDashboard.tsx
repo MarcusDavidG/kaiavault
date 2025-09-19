@@ -1,10 +1,9 @@
 "use client";
 
-import { useReadContract } from "wagmi";
+import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
-import { useDappPortal } from "@/hooks/useDappPortal";
-import { usdtVaultContractAddress } from "@/lib/contracts";
-import USDTVaultJson from "@/abi/USDTVault.json";
+import { useWallet } from "@/hooks/useWallet";
+import { getUSDTVaultContract } from "@/lib/contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Helper component for each metric card
@@ -26,26 +25,52 @@ function MetricCard({ title, value, isLoading, unit = "" }: { title: string; val
 }
 
 export function VaultDashboard() {
-  const { account } = useDappPortal();
+  const { account } = useWallet();
 
   // Assume KUSDT has 6 decimals, which is standard for USDT
   const KUSDT_DECIMALS = 6;
 
-  const { data: userBalance, isLoading: isUserBalanceLoading } = useReadContract({
-    address: usdtVaultContractAddress,
-    abi: USDTVaultJson.abi,
-    functionName: "getBalance",
-    args: [account!],
-    query: {
-      enabled: !!account, // Only run query if account is available
-    },
-  });
+  const [userBalance, setUserBalance] = useState<bigint | null>(null);
+  const [tvl, setTvl] = useState<bigint | null>(null);
+  const [loadingUserBalance, setLoadingUserBalance] = useState(true);
+  const [loadingTvl, setLoadingTvl] = useState(true);
 
-  const { data: tvl, isLoading: isTvlLoading } = useReadContract({
-    address: usdtVaultContractAddress,
-    abi: USDTVaultJson.abi,
-    functionName: "totalVaultBalance",
-  });
+  useEffect(() => {
+    const fetchUserBalance = async () => {
+      if (!account) {
+        setUserBalance(null);
+        setLoadingUserBalance(false);
+        return;
+      }
+      try {
+        const vaultContract = await getUSDTVaultContract();
+        const balance = await vaultContract.getBalance(account);
+        setUserBalance(balance);
+      } catch (e) {
+        console.error("Failed to fetch user balance", e);
+      } finally {
+        setLoadingUserBalance(false);
+      }
+    };
+
+    fetchUserBalance();
+  }, [account]);
+
+  useEffect(() => {
+    const fetchTvl = async () => {
+      try {
+        const vaultContract = await getUSDTVaultContract();
+        const totalDeposits = await vaultContract.totalDeposits();
+        setTvl(totalDeposits);
+      } catch (e) {
+        console.error("Failed to fetch total value locked", e);
+      } finally {
+        setLoadingTvl(false);
+      }
+    };
+
+    fetchTvl();
+  }, []);
 
   const formattedUserBalance = userBalance ? formatUnits(userBalance, KUSDT_DECIMALS) : "0.00";
   const formattedTvl = tvl ? formatUnits(tvl, KUSDT_DECIMALS) : "0.00";
@@ -55,12 +80,12 @@ export function VaultDashboard() {
       <MetricCard 
         title="Total Value Locked" 
         value={`${parseFloat(formattedTvl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-        isLoading={isTvlLoading} 
+        isLoading={loadingTvl} 
       />
       <MetricCard 
         title="Your Deposit" 
         value={parseFloat(formattedUserBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        isLoading={isUserBalanceLoading} 
+        isLoading={loadingUserBalance} 
         unit="KUSDT"
       />
       {/* Mock data for APY and Rewards as they are not in the ABI */}

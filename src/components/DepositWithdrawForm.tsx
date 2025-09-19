@@ -10,13 +10,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits, maxUint256, encodeFunctionData } from "viem";
-import { useDappPortal } from "@/hooks/useDappPortal";
+import { useWallet } from "@/hooks/useWallet";
 import { usdtContractAddress, usdtVaultContractAddress } from "@/lib/contracts";
-import { isInsideLineMiniDapp, requestTransaction } from "@/lib/lineMiniDapp";
+import { requestTransaction } from "@/lib/dapp-portal";
 import KUSDTJson from "@/abi/KUSDT.json";
 import USDTVaultJson from "@/abi/USDTVault.json";
+import toast from 'react-hot-toast';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,89 +26,78 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const KUSDT_DECIMALS = 6;
 
 function DepositTab() {
-  const { account } = useDappPortal();
+  const { account } = useWallet();
   const [amount, setAmount] = useState("");
-  const [isLine, setIsLine] = useState(false);
   const [lineTxState, setLineTxState] = useState<{ loading: boolean; error: string | null; success: string | null }>({ loading: false, error: null, success: null });
 
+  const [balance, setBalance] = useState<bigint | null>(null);
+  const [allowance, setAllowance] = useState<bigint | null>(null);
+
   useEffect(() => {
-    setIsLine(isInsideLineMiniDapp());
-  }, []);
-
-  const { data: balance, refetch: refetchBalance } = useReadContract({
-    address: usdtContractAddress,
-    abi: KUSDTJson.abi,
-    functionName: "balanceOf",
-    args: [account!],
-    query: { enabled: !!account },
-  });
-
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: usdtContractAddress,
-    abi: KUSDTJson.abi,
-    functionName: "allowance",
-    args: [account!, usdtVaultContractAddress],
-    query: { enabled: !!account },
-  });
-
-  const { data: approveHash, writeContract: approve, isPending: isApprovingWagmi } = useWriteContract();
-  const { data: depositHash, writeContract: deposit, isPending: isDepositingWagmi } = useWriteContract();
-
-  const { isSuccess: isApproved } = useWaitForTransactionReceipt({ hash: approveHash });
-  const { isSuccess: isDeposited, isError: isDepositError } = useWaitForTransactionReceipt({ hash: depositHash });
+    const fetchBalanceAndAllowance = async () => {
+      if (!account) return;
+      try {
+        const usdtContract = await import("@/lib/contracts").then(mod => mod.getUSDTContract());
+        const bal = await usdtContract.balanceOf(account);
+        const allow = await usdtContract.allowance(account, usdtVaultContractAddress);
+        setBalance(bal);
+        setAllowance(allow);
+      } catch (e) {
+        console.error("Failed to fetch balance or allowance", e);
+      }
+    };
+    fetchBalanceAndAllowance();
+  }, [account, lineTxState.success]);
 
   const needsApproval = !allowance || (amount && allowance < parseUnits(amount, KUSDT_DECIMALS));
-  const amountInUnits = amount ? parseUnits(amount, KUSDT_DECIMALS) : 0n;
+  const amountInUnits = amount ? parseUnits(amount, KUSDT_DECIMALS) : BigInt(0);
 
   const handleApprove = async () => {
     setLineTxState({ loading: true, error: null, success: null });
-    if (isLine) {
-      try {
-        const approveData = encodeFunctionData({
-          abi: KUSDTJson.abi,
-          functionName: "approve",
-          args: [usdtVaultContractAddress, maxUint256],
-        });
-        const result = await requestTransaction({ to: usdtContractAddress, data: approveData });
-        setLineTxState({ loading: false, error: null, success: `Approval successful: ${result.txHash}` });
-        refetchAllowance();
-      } catch (e: any) {
-        setLineTxState({ loading: false, error: e.message || "Transaction rejected.", success: null });
-      }
-    } else {
-      approve({ address: usdtContractAddress, abi: KUSDTJson.abi, functionName: "approve", args: [usdtVaultContractAddress, maxUint256] });
+    try {
+      const approveData = encodeFunctionData({
+        abi: KUSDTJson.abi,
+        functionName: "approve",
+        args: [usdtVaultContractAddress, maxUint256],
+      });
+      const result = await requestTransaction({ to: usdtContractAddress, data: approveData });
+      setLineTxState({ loading: false, error: null, success: `Approval successful: ${result.txHash}` });
+      toast.success('Approval successful!');
+      // Refresh allowance
+      const usdtContract = await import("@/lib/contracts").then(mod => mod.getUSDTContract());
+      const allow = await usdtContract.allowance(account!, usdtVaultContractAddress);
+      setAllowance(allow);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Transaction rejected.";
+      setLineTxState({ loading: false, error: errorMessage, success: null });
+      toast.error(`Approval failed: ${errorMessage}`);
     }
   };
 
   const handleDeposit = async () => {
     setLineTxState({ loading: true, error: null, success: null });
-    if (isLine) {
-      try {
-        const depositData = encodeFunctionData({
-          abi: USDTVaultJson.abi,
-          functionName: "deposit",
-          args: [amountInUnits],
-        });
-        const result = await requestTransaction({ to: usdtVaultContractAddress, data: depositData });
-        setLineTxState({ loading: false, error: null, success: `Deposit successful: ${result.txHash}` });
-        setAmount("");
-        refetchBalance();
-        // Also refetch vault balance if displayed elsewhere
-      } catch (e: any) {
-        setLineTxState({ loading: false, error: e.message || "Transaction rejected.", success: null });
-      }
-    } else {
-      deposit({ address: usdtVaultContractAddress, abi: USDTVaultJson.abi, functionName: "deposit", args: [amountInUnits] });
+    try {
+      const depositData = encodeFunctionData({
+        abi: USDTVaultJson.abi,
+        functionName: "deposit",
+        args: [amountInUnits],
+      });
+      const result = await requestTransaction({ to: usdtVaultContractAddress, data: depositData });
+      setLineTxState({ loading: false, error: null, success: `Deposit successful: ${result.txHash}` });
+      toast.success('Deposit successful!');
+      setAmount("");
+      // Refresh balance
+      const usdtContract = await import("@/lib/contracts").then(mod => mod.getUSDTContract());
+      const bal = await usdtContract.balanceOf(account!);
+      setBalance(bal);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Transaction rejected.";
+      setLineTxState({ loading: false, error: errorMessage, success: null });
+      toast.error(`Deposit failed: ${errorMessage}`);
     }
   };
 
-  if (isApproved) refetchAllowance();
-  if (isDeposited) {
-    setAmount("");
-    refetchBalance();
-  }
-
-  const isPending = isApprovingWagmi || isDepositingWagmi || lineTxState.loading;
+  const isPending = lineTxState.loading;
 
   return (
     <div className="space-y-4">
@@ -134,62 +123,58 @@ function DepositTab() {
         </Button>
       )}
       {lineTxState.error && <p className="text-red-500 text-sm mt-2">{lineTxState.error}</p>}
-      {isDepositError && <p className="text-red-500 text-sm mt-2">Deposit failed. Please check your balance.</p>}
       {lineTxState.success && <p className="text-green-500 text-sm mt-2 break-all">{lineTxState.success}</p>}
     </div>
   );
 }
 
 function WithdrawTab() {
-  const { account } = useDappPortal();
+  const { account } = useWallet();
   const [amount, setAmount] = useState("");
-  const [isLine, setIsLine] = useState(false);
   const [lineTxState, setLineTxState] = useState<{ loading: boolean; error: string | null; success: string | null }>({ loading: false, error: null, success: null });
 
+  const [balance, setBalance] = useState<bigint | null>(null);
+
   useEffect(() => {
-    setIsLine(isInsideLineMiniDapp());
-  }, []);
+    const fetchVaultBalance = async () => {
+      if (!account) return;
+      try {
+        const vaultContract = await import("@/lib/contracts").then(mod => mod.getUSDTVaultContract());
+        const bal = await vaultContract.getBalance(account);
+        setBalance(bal);
+      } catch (e) {
+        console.error("Failed to fetch vault balance", e);
+      }
+    };
+    fetchVaultBalance();
+  }, [account, lineTxState.success]);
 
-  const { data: balance, refetch: refetchVaultBalance } = useReadContract({
-    address: usdtVaultContractAddress,
-    abi: USDTVaultJson.abi,
-    functionName: "getBalance",
-    args: [account!],
-    query: { enabled: !!account },
-  });
-
-  const { writeContract: withdraw, isPending: isWithdrawingWagmi, data: withdrawHash } = useWriteContract();
-  const { isSuccess: isWithdrawn, isError: isWithdrawError } = useWaitForTransactionReceipt({ hash: withdrawHash });
-
-  const amountInUnits = amount ? parseUnits(amount, KUSDT_DECIMALS) : 0n;
+  const amountInUnits = amount ? parseUnits(amount, KUSDT_DECIMALS) : BigInt(0);
 
   const handleWithdraw = async () => {
     setLineTxState({ loading: true, error: null, success: null });
-    if (isLine) {
-      try {
-        const withdrawData = encodeFunctionData({
-          abi: USDTVaultJson.abi,
-          functionName: "withdraw",
-          args: [amountInUnits],
-        });
-        const result = await requestTransaction({ to: usdtVaultContractAddress, data: withdrawData });
-        setLineTxState({ loading: false, error: null, success: `Withdrawal successful: ${result.txHash}` });
-        setAmount("");
-        refetchVaultBalance();
-      } catch (e: any) {
-        setLineTxState({ loading: false, error: e.message || "Transaction rejected.", success: null });
-      }
-    } else {
-      withdraw({ address: usdtVaultContractAddress, abi: USDTVaultJson.abi, functionName: "withdraw", args: [amountInUnits] });
+    try {
+      const withdrawData = encodeFunctionData({
+        abi: USDTVaultJson.abi,
+        functionName: "withdraw",
+        args: [amountInUnits],
+      });
+      const result = await requestTransaction({ to: usdtVaultContractAddress, data: withdrawData });
+      setLineTxState({ loading: false, error: null, success: `Withdrawal successful: ${result.txHash}` });
+      toast.success('Withdrawal successful!');
+      setAmount("");
+      // Refresh vault balance
+      const vaultContract = await import("@/lib/contracts").then(mod => mod.getUSDTVaultContract());
+      const bal = await vaultContract.getBalance(account!);
+      setBalance(bal);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Transaction rejected.";
+      setLineTxState({ loading: false, error: errorMessage, success: null });
+      toast.error(`Withdrawal failed: ${errorMessage}`);
     }
   };
 
-  if (isWithdrawn) {
-    setAmount("");
-    refetchVaultBalance();
-  }
-
-  const isPending = isWithdrawingWagmi || lineTxState.loading;
+  const isPending = lineTxState.loading;
 
   return (
     <div className="space-y-4">
@@ -209,7 +194,6 @@ function WithdrawTab() {
         {isPending ? "Withdrawing..." : "Withdraw"}
       </Button>
       {lineTxState.error && <p className="text-red-500 text-sm mt-2">{lineTxState.error}</p>}
-      {isWithdrawError && <p className="text-red-500 text-sm mt-2">Withdrawal failed. Check amount and balance.</p>}
       {lineTxState.success && <p className="text-green-500 text-sm mt-2 break-all">{lineTxState.success}</p>}
     </div>
   );

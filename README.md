@@ -1,24 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kaiavault
+
+This is a [Next.js](https://nextjs.org) project for a Kaia-based USDT savings vault with LINE Mini Dapp integration.
+
+## Deployed Contracts (Kaia Testnet)
+
+- **KUSDT**: `0x5b73C5498c1E3b4dbA84de0F1833c4a029d90519`
+- **USDTVault**: `0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496`
 
 ## Getting Started
 
-First, run the development server:
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Wallet Connection
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This application supports two ways to connect a wallet:
+
+### 1. LINE Mini Dapp
+
+- To test the LINE Mini Dapp integration, you must run the application inside a LINE Mini Dapp emulator or a registered Mini Dapp environment.
+- The application will automatically detect the LINE environment and connect to the user's wallet via the Dapp Portal SDK.
+
+### 2. MetaMask / Kaikas (Browser Fallback)
+
+- If you open the application in a standard web browser, it will provide a "Connect Wallet" button.
+- Clicking this button will open the browser's wallet extension (e.g., MetaMask or Kaikas), allowing you to connect your wallet.
+- Ensure your wallet is connected to the **Kaia Testnet**.
 
 ## Learn More
 
@@ -26,8 +44,6 @@ To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Deploy on Vercel
 

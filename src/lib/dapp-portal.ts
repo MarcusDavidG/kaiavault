@@ -35,3 +35,25 @@ export const getDappPortalSDK = async (): Promise<DappPortalSDK> => {
 
   return sdkInstance;
 };
+
+/**
+ * Request a transaction using the LINE Dapp Portal SDK.
+ * @param tx The transaction object with 'to' and 'data' fields.
+ * @returns A promise that resolves to the transaction result.
+ */
+export const requestTransaction = async (tx: { to: string; data: string }): Promise<{ txHash: string }> => {
+  const sdk = await getDappPortalSDK();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return await (sdk as any).requestTransaction(tx);
+};
+
+/**
+ * Check if the app is running inside LINE Mini Dapp environment.
+ * @returns True if inside LINE Mini Dapp, false otherwise.
+ */
+export const isInsideLineMiniDapp = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return /Line/i.test(navigator.userAgent);
+};
