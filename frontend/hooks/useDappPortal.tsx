@@ -1,6 +1,9 @@
 'use client'
 
+import { useWallet } from './useWallet'
+
 export function useDappPortal() {
-  // Placeholder for dapp portal hook
-  return {}
+  // For now, just return the wallet hook as the dapp portal interface
+  const wallet = useWallet()
+  return wallet
 }
