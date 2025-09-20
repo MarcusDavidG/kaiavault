@@ -16,14 +16,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white flex flex-col">
       <Header />
 
       <main className="flex-1 py-8 px-4">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Kaiavault</h1>
-            <p className="text-lg text-gray-600">LINE Mini Dapp USDT Vault</p>
+            <h1 className="text-4xl font-bold text-white mb-2">Kaiavault</h1>
+            <p className="text-lg text-gray-300">LINE Mini Dapp USDT Vault</p>
           </div>
 
           <div className="flex justify-center">
