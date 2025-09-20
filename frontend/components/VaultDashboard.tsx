@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-import { useWallet } from '../hooks/useWallet'
+import { useLine } from '../lib/line-context'
 import { TrendingUp, TrendingDown, Wallet, ArrowDown, ArrowUp } from 'lucide-react'
 
 export default function VaultDashboard() {
-  const { isConnected, address } = useWallet()
+  const { isConnected, wallet } = useLine()
   const [vaultData, setVaultData] = useState({
     totalDeposits: '0',
     totalWithdrawals: '0',
@@ -15,7 +15,7 @@ export default function VaultDashboard() {
   })
 
   useEffect(() => {
-    if (isConnected && address) {
+    if (isConnected && wallet) {
       // Placeholder for fetching vault data from contracts
       // In a real implementation, this would call contract methods
       setVaultData({
@@ -24,7 +24,7 @@ export default function VaultDashboard() {
         userBalance: '3000',
       })
     }
-  }, [isConnected, address])
+  }, [isConnected, wallet])
 
   if (!isConnected) {
     return (
